@@ -1,0 +1,33 @@
+WITH daily_send_volume AS (
+  SELECT
+    DATE_TRUNC('day', evt_block_time) AS day,
+    SUM(_amount) AS daily_volume
+  FROM layerzero_ethereum.CantoOFTV2_evt_ReceiveFromChain
+  GROUP BY
+    1
+), daily_receive_volume AS (
+  SELECT
+    DATE_TRUNC('day', evt_block_time) AS day,
+    SUM(_amount) AS daily_volume
+  FROM layerzero_ethereum.CNoteOFT_evt_SendToChain
+  GROUP BY
+    1
+), combined_volume AS (
+  SELECT
+    day,
+    SUM(daily_volume) AS total_volume
+  FROM (
+    SELECT
+      *
+    FROM daily_send_volume
+    UNION ALL
+    SELECT
+      *
+    FROM daily_receive_volume
+  )
+  GROUP BY
+    day
+)
+SELECT
+  AVG(total_volume) AS average_daily_volume
+FROM combined_volume
